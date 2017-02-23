@@ -1,0 +1,19 @@
+version: "2"
+
+services:
+    bikes:
+        build: ./
+        environment:
+            - REDIS_ADDR=myredis
+            - REDIS_PASSWORD=
+        depends_on:
+            - myredis
+        links:
+            - myredis
+        ports:
+            - "8080:80"
+    
+    myredis:
+        image: redis:alpine
+        expose:
+            - "6379"
