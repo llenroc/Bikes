@@ -15,6 +15,13 @@ if (process.env.REDIS_PASSWORD) {
 console.log("redisAddr: " + redisAddr);
 var express = require('express');
 var redis = require('redis').createClient("redis://" + redisAddr, {password: redisPass});
+redis.on("end", function() {
+    console.log('Redis connection terminated unexpectedly! Shutting down...');
+    process.exit(1);
+});
+redis.on("error", function(err) {
+    console.log('Uncaught redis error: ' + err);
+});
 
 var app = express();
 app.use(bodyParser.json());
@@ -58,7 +65,6 @@ app.get('/api/bikes/:bikeId', function(req, res) {
         return;
     }
 
-    var keyExists = false;
     redis.hkeys(req.params.bikeId, function(err, reply) {
         if (err) {
             res.status(500).send(err);
@@ -77,6 +83,26 @@ app.get('/api/bikes/:bikeId', function(req, res) {
             var unflattenedBody = flat.unflatten(reply);
             res.send(unflattenedBody);
         });
+    });
+});
+
+app.delete('/api/bikes/:bikeId', function(req, res) {
+    if (!req.params.bikeId) {
+        res.status(400).send('Must specify bikeId');
+        return;
+    }
+
+    redis.del(req.params.bikeId, function(err, reply) {
+        if (err) {
+            res.status(500).send(err);
+            return;
+        }
+        if (reply === 0) {
+            res.status(400).send('BikeId "' + req.params.bikeId + '" does not exist.');
+            return;
+        }
+
+        res.sendStatus(200);
     });
 });
 
