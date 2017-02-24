@@ -11,12 +11,22 @@ spec:
       labels:
         app: {{ template "fullname" . }}
     spec:
+      imagePullSecrets:
+        - name: {{ .Values.image.repoCredsSecretName }}
       containers:
       - name: {{ .Chart.Name }}
-        image: "{{ .Values.image.repository }}contosobikerental-bikes:{{ .Values.image.tag }}"
+        image: "{{ .Values.image.repository }}/contoso-bikerental-bikes:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
-        - containerPort: 80
+          - containerPort: 80
+        env:
+          - name: REDIS_ADDR
+            value: {{ .Release.Name }}-redis
+          - name: REDIS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Release.Name }}-redis
+                key: redis-password
         livenessProbe:
           httpGet:
             path: /hello

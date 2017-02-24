@@ -3,9 +3,10 @@
 # Declare variables to be passed into your templates.
 replicaCount: 1
 image:
-  repository: nginx
+  repository: stevenryregistry-microsoft.azurecr.io
   tag: latest
   pullPolicy: IfNotPresent
+  repoCredsSecretName: myregistrykey
 resources:
   limits:
     cpu: 100m
