@@ -80,6 +80,10 @@ app.get('/api/bikes/:bikeId', function(req, res) {
     });
 });
 
+app.get('/hello', function(req, res) {
+    res.send('hello!');
+});
+
 // start server ------------------------------------------------------------
 var port = 80;
 var server = app.listen(port, function () {

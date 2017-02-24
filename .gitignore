@@ -1,3 +1,7 @@
+# Helm chart dependencies
+*.tgz
+requirements.lock
+
 # Logs
 logs
 *.log

@@ -1,0 +1,4 @@
+apiVersion: v1
+description: A Helm chart for ContosoBikeRental Bikes microservice
+name: contoso.bikerental.bikes
+version: 0.1.0
