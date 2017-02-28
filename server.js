@@ -26,8 +26,8 @@ redis.on("error", function(err) {
 });
 
 var app = express();
-app.use(bodyParser.json());
 app.use(morgan("dev"));
+app.use(bodyParser.json());
 
 validate.validators.illegal = function(value, options, key, attributes) {
     if (value && options) {
