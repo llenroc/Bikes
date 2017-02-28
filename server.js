@@ -3,6 +3,8 @@ var request = require('request');
 var morgan = require('morgan');
 var bodyParser = require('body-parser');
 var flat = require('flat');
+var validate = require('validate.js');
+var _ = require('underscore');
 
 var redisAddr = "mycache";
 var redisPass = null;
@@ -27,10 +29,54 @@ var app = express();
 app.use(bodyParser.json());
 app.use(morgan("dev"));
 
+validate.validators.illegal = function(value, options, key, attributes) {
+    if (value && options) {
+        return "cannot be provided";
+    }
+}
+
+var incomingBikeSchema = {
+    id: {
+        illegal: true
+    },
+    available: {
+        illegal: true
+    },
+    manufacturer: {
+        presence: true,
+        length: { minimum: 1 }
+    },
+    model: {
+        presence: true,
+        length: { minimum: 1 }
+    },
+    hourlyCost: {
+        presence: true,
+        numericality: { greaterThan: 0 }
+    },
+    type: {
+        presence: true,
+        inclusion: [ "mountain", "road", "tandem" ]
+    },
+    ownerUserId: {
+        presence: true,
+        numericality: { greaterThan: 0 }
+    },
+    suitableHeightInMeters: {
+        presence: true,
+        numericality: { greaterThan: 0 }
+    },
+    maximumWeightInKg: {
+        presence: true,
+        numericality: { greaterThan: 0 }
+    }
+};
+
 // api ------------------------------------------------------------
 app.post('/api/bikes', function (req, res) {
-    if (req.body.id) {
-        res.status(400).send('id field must be empty');
+    var validationErrors = validate(req.body, incomingBikeSchema);
+    if (validationErrors) {
+        res.status(400).send(validationErrors);
         return;
     }
 
@@ -45,17 +91,59 @@ app.post('/api/bikes', function (req, res) {
             return;
         }
 
-        var flattenedBody = flat.flatten(req.body);
+        var newBike = req.body;
+        newBike.id = nextId;
+        newBike.availabile = true;
+        
+        var flattenedBody = flat.flatten(newBike);
         console.log('adding: ' + JSON.stringify(flattenedBody));
-        flattenedBody.id = nextId;
 
         redis.hmset(nextId, flattenedBody, function(err, reply) {
             if (err) {
                 res.status(500).send(err);
             }
 
-            res.send(flat.unflatten(flattenedBody));
+            res.send(newBike);
         });
+    });
+});
+
+app.put('/api/bikes/:bikeId', function(req, res) {
+    var validationErrors = validate(req.body, incomingBikeSchema);
+    if (validationErrors) {
+        res.status(400).send(validationErrors);
+        return;
+    }
+
+    redis.hgetall(req.params.bikeId, function(err, reply) {
+        if (err) {
+            res.status(500).send(err);
+            return;
+        }
+        if (!reply) {
+            res.status(400).send('BikeId "' + req.params.bikeId + '" does not exist.');
+            return;
+        }
+
+        var existingBike = flat.unflatten(reply);
+        var newBike = req.body;
+        newBike.id = existingBike.id;
+        newBike.availabile = existingBike.availabile;
+
+        var newFlattenedBike = flat.flatten(newBike);
+        console.log("updating: " + JSON.stringify(newFlattenedBike));
+
+        redis.multi()
+             .del(req.params.bikeId)
+             .hmset(req.params.bikeId, newFlattenedBike)
+             .exec(function (err, reply) {
+                if (err) {
+                    res.status(500).send(err);
+                    return;
+                }
+
+                res.send(newBike);
+             });
     });
 });
 
@@ -65,24 +153,26 @@ app.get('/api/bikes/:bikeId', function(req, res) {
         return;
     }
 
-    redis.hkeys(req.params.bikeId, function(err, reply) {
+    redis.hgetall(req.params.bikeId, function(err, reply) {
         if (err) {
             res.status(500).send(err);
-            return;
         }
-        if (reply.length === 0) {
+        if (!reply) {
             res.status(400).send('BikeId "' + req.params.bikeId + '" does not exist.');
             return;
         }
-        
-        redis.hgetall(req.params.bikeId, function(err, reply) {
-            if (err) {
-                res.status(500).send(err);
-            }
 
-            var unflattenedBody = flat.unflatten(reply);
-            res.send(unflattenedBody);
-        });
+        var bike = flat.unflatten(reply);
+
+        // Convert number and boolean fields
+        bike.id = parseInt(bike.id);
+        bike.available = (bike.availabile == 'true');
+        bike.hourlyCost = parseFloat(bike.hourlyCost);
+        bike.ownerUserId = parseInt(bike.ownerUserId);
+        bike.suitableHeightInMeters = parseFloat(bike.suitableHeightInMeters);
+        bike.maximumWeightInKg = parseFloat(bike.maximumWeightInKg);
+
+        res.send(bike);
     });
 });
 
