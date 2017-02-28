@@ -93,7 +93,7 @@ app.post('/api/bikes', function (req, res) {
 
         var newBike = req.body;
         newBike.id = nextId;
-        newBike.availabile = true;
+        newBike.available = true;
         
         var flattenedBody = flat.flatten(newBike);
         console.log('adding: ' + JSON.stringify(flattenedBody));
@@ -120,7 +120,7 @@ app.put('/api/bikes/:bikeId', function(req, res) {
             res.status(500).send(err);
             return;
         }
-        if (!reply) {
+        if (reply === null) {
             res.status(400).send('BikeId "' + req.params.bikeId + '" does not exist.');
             return;
         }
@@ -128,7 +128,7 @@ app.put('/api/bikes/:bikeId', function(req, res) {
         var existingBike = flat.unflatten(reply);
         var newBike = req.body;
         newBike.id = existingBike.id;
-        newBike.availabile = existingBike.availabile;
+        newBike.available = existingBike.available;
 
         var newFlattenedBike = flat.flatten(newBike);
         console.log("updating: " + JSON.stringify(newFlattenedBike));
@@ -157,7 +157,7 @@ app.get('/api/bikes/:bikeId', function(req, res) {
         if (err) {
             res.status(500).send(err);
         }
-        if (!reply) {
+        if (reply === null) {
             res.status(400).send('BikeId "' + req.params.bikeId + '" does not exist.');
             return;
         }
@@ -166,7 +166,7 @@ app.get('/api/bikes/:bikeId', function(req, res) {
 
         // Convert number and boolean fields
         bike.id = parseInt(bike.id);
-        bike.available = (bike.availabile == 'true');
+        bike.available = (bike.available == 'true');
         bike.hourlyCost = parseFloat(bike.hourlyCost);
         bike.ownerUserId = parseInt(bike.ownerUserId);
         bike.suitableHeightInMeters = parseFloat(bike.suitableHeightInMeters);
@@ -195,6 +195,49 @@ app.delete('/api/bikes/:bikeId', function(req, res) {
         res.sendStatus(200);
     });
 });
+
+app.patch('/api/bikes/:bikeId/reserve', function(req, res) {
+    if (!req.params.bikeId) {
+        res.status(400).send('Must specify bikeId');
+        return;
+    }
+
+    processReservation(res, req.params.bikeId, "false");
+});
+
+app.patch('/api/bikes/:bikeId/clear', function(req, res) {
+    if (!req.params.bikeId) {
+        res.status(400).send('Must specify bikeId');
+        return;
+    }
+
+    processReservation(res, req.params.bikeId, "true");
+});
+
+function processReservation(httpResponse, bikeId, changeTo) {
+    redis.hget(bikeId, "available", function(err, reply) {
+        if (err) {
+            httpResponse.status(500).send(err);
+            return;
+        }
+        if (reply === null) {
+            httpResponse.status(400).send('BikeId "' + bikeId + '" does not exist.');
+            return;
+        }
+        if (reply === changeTo) {
+            httpResponse.status(400).send('Invalid reservation change for BikeId "' + bikeId + '"');
+            return;
+        }
+
+        redis.hset(bikeId, "available", changeTo, function(err, reply) {
+            if (err) {
+                httpResponse.status(500).send(err);
+            }
+
+            httpResponse.sendStatus(200);
+        });
+    });
+}
 
 app.get('/hello', function(req, res) {
     res.send('hello!');
