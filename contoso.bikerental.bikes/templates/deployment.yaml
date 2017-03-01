@@ -21,11 +21,11 @@ spec:
           - containerPort: 80
         env:
           - name: REDIS_ADDR
-            value: {{ .Release.Name }}-redis
+            value: {{ .Values.redis.addr }}
           - name: REDIS_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: {{ .Release.Name }}-redis
+                name: {{ template "fullname" . }}
                 key: redis-password
         livenessProbe:
           httpGet:

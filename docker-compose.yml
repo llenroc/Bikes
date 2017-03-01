@@ -4,16 +4,16 @@ services:
     bikes:
         build: ./
         environment:
-            - REDIS_ADDR=myredis
-            - REDIS_PASSWORD=
-        depends_on:
-            - myredis
-        links:
-            - myredis
+            - REDIS_ADDR=contosobikes.redis.cache.windows.net
+            - REDIS_PASSWORD=<insert password here>
         ports:
             - "8080:80"
+        # depends_on:
+        #     - myredis
+        # links:
+        #     - myredis
     
-    myredis:
-        image: redis:alpine
-        expose:
-            - "6379"
+    # myredis:
+    #     image: redis:alpine
+    #     expose:
+    #         - "6379"

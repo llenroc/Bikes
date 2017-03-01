@@ -5,7 +5,7 @@ replicaCount: 1
 image:
   repository: stevenryregistry-microsoft.azurecr.io
   tag: latest
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   repoCredsSecretName: myregistrykey
 resources:
   limits:
@@ -16,6 +16,10 @@ resources:
     memory: 128Mi
 
 redis:
-  redisPassword: stevenry_pass
-  persistence:
-    enabled: false
+  addr: contosobikes.redis.cache.windows.net
+  password: <insert password here>
+
+# redis:
+#   redisPassword: stevenry_pass
+#   persistence:
+#     enabled: false
