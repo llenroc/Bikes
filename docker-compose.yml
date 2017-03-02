@@ -4,8 +4,8 @@ services:
     bikes:
         build: ./
         environment:
-            - REDIS_ADDR=contosobikes.redis.cache.windows.net
-            - REDIS_PASSWORD=<insert password here>
+            - MONGO_DB_CONNECTION_STRING=<insert connection string here>
+            - MONGO_DB_COLLECTION=bikes
         ports:
             - "8080:80"
         # depends_on:
