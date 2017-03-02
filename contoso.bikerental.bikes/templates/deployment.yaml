@@ -20,13 +20,13 @@ spec:
         ports:
           - containerPort: 80
         env:
-          - name: REDIS_ADDR
-            value: {{ .Values.redis.addr }}
-          - name: REDIS_PASSWORD
+          - name: MONGO_DB_COLLECTION
+            value: {{ .Values.mongo.collection }}
+          - name: MONGO_DB_CONNECTION_STRING
             valueFrom:
               secretKeyRef:
                 name: {{ template "fullname" . }}
-                key: redis-password
+                key: mongo-connection-string
         livenessProbe:
           httpGet:
             path: /hello

@@ -8,12 +8,3 @@ services:
             - MONGO_DB_COLLECTION=bikes
         ports:
             - "8080:80"
-        # depends_on:
-        #     - myredis
-        # links:
-        #     - myredis
-    
-    # myredis:
-    #     image: redis:alpine
-    #     expose:
-    #         - "6379"

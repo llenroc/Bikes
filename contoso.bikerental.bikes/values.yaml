@@ -15,11 +15,6 @@ resources:
     cpu: 100m
     memory: 128Mi
 
-redis:
-  addr: contosobikes.redis.cache.windows.net
-  password: <insert password here>
-
-# redis:
-#   redisPassword: stevenry_pass
-#   persistence:
-#     enabled: false
+mongo:
+  collection: bikes
+  connectionString: <insert connection string here>

@@ -17,12 +17,8 @@ console.log("MongoDB connection string: " + mongoDBConnStr);
 // Init to prototype to enable Intellisense
 var mongoDB = require('mongodb').Db.prototype;
 
-var app = express();
-app.use(morgan("dev"));
-app.use(bodyParser.json());
-
 validate.validators.illegal = function(value, options, key, attributes) {
-    if (value && options) {
+    if (value !== undefined && options) {
         return "cannot be provided";
     }
 }
@@ -44,7 +40,7 @@ var incomingBikeSchema = {
     },
     hourlyCost: {
         presence: true,
-        numericality: { greaterThan: 0 }
+        numericality: { greaterThan: 0, noStrings: true }
     },
     type: {
         presence: true,
@@ -52,17 +48,21 @@ var incomingBikeSchema = {
     },
     ownerUserId: {
         presence: true,
-        numericality: { greaterThan: 0 }
+        numericality: { greaterThan: 0, noStrings: true }
     },
     suitableHeightInMeters: {
         presence: true,
-        numericality: { greaterThan: 0 }
+        numericality: { greaterThan: 0, noStrings: true }
     },
     maximumWeightInKg: {
         presence: true,
-        numericality: { greaterThan: 0 }
+        numericality: { greaterThan: 0, noStrings: true }
     }
 };
+
+var app = express();
+app.use(morgan("dev"));
+app.use(bodyParser.json());
 
 // api ------------------------------------------------------------
 
