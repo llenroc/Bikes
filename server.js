@@ -232,7 +232,22 @@ function processReservation(res, bikeId, changeTo) {
             return;
         }
         if (result.matchedCount === 0) {
-            res.status(400).send('BikeId "' + bikeId + '" either does not exist, or an invalid reservation request was made!');
+            // Figure out if bike does not exist or if it was invalid reservation request
+            mongoDB.collection(mongoDBCollection).findOne({ _id: new ObjectId(bikeId) }, function(err, result) {
+                if (err) {
+                    dbError(res, err);
+                    return;
+                }
+
+                if (!result) {
+                    bikeDoesNotExist(res, bikeId);
+                }
+                else {
+                    // Invalid reservation request
+                    res.status(400).send('Invalid reservation request was made for BikeId ' + bikeId);
+                }
+            });
+            
             return;
         }
         if (result.matchedCount !== 1 && result.modifiedCount !== 1) {
