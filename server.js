@@ -47,8 +47,7 @@ var incomingBikeSchema = {
         inclusion: [ "mountain", "road", "tandem" ]
     },
     ownerUserId: {
-        presence: true,
-        numericality: { greaterThan: 0, noStrings: true }
+        presence: true
     },
     suitableHeightInMeters: {
         presence: true,
