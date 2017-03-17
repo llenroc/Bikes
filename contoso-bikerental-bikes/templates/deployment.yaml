@@ -36,4 +36,9 @@ spec:
             path: /hello
             port: 80
         resources:
-{{ toYaml .Values.resources | indent 12 }}
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
