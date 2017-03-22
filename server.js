@@ -279,7 +279,11 @@ var port = 80;
 var server = null;
 
 process.on("SIGINT", () => {
-    process.exit(130 /* 128 + SIGINT */);
+    console.log("Interrupted. Terminating...");
+    if (server) {
+        server.close();
+    }
+    mongoDB.close();
 });
 
 process.on("SIGTERM", () => {
