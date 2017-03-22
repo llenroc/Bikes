@@ -8,6 +8,7 @@ var _ = require('underscore');
 var MongoClient = require('mongodb').MongoClient;
 var ObjectId = require('mongodb').ObjectID;
 var express = require('express');
+var async = require('async');
 
 var mongoDBConnStr = process.env.MONGO_DB_CONNECTION_STRING;
 var mongoDBCollection = process.env.MONGO_DB_COLLECTION;
@@ -277,22 +278,6 @@ app.get('/hello', function(req, res) {
 var port = 80;
 var server = null;
 
-MongoClient.connect(mongoDBConnStr, function(err, db) {
-    if (err) {
-        console.error("Mongo connection error!");
-        console.error(err);
-        process.exit(1);
-    }
-
-    console.log("Connected to MongoDB");
-    mongoDB = db;
-
-    // Start server
-    server = app.listen(port, function () {
-        console.log('Listening on port ' + port);
-    });
-});
-
 process.on("SIGINT", () => {
     process.exit(130 /* 128 + SIGINT */);
 });
@@ -303,4 +288,31 @@ process.on("SIGTERM", () => {
         server.close();
     }
     mongoDB.close();
+});
+
+function tryMongoConnect(callback, results) {
+    MongoClient.connect(mongoDBConnStr, function(err, db) {
+        if (err) {
+            console.error("Mongo connection error!");
+            console.error(err);
+        }
+
+        callback(err, db);
+    });
+}
+
+async.retry({times: 10, interval: 1000}, tryMongoConnect, function(err, result) {
+    if (err) {
+        console.error("Couldn't connect to Mongo! Giving up.");
+        console.error(err);
+        process.exit(1);
+    }
+
+    console.log("Connected to MongoDB");
+    mongoDB = result;
+
+    // Start server
+    server = app.listen(port, function () {
+        console.log('Listening on port ' + port);
+    });
 });
