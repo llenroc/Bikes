@@ -61,13 +61,34 @@ var incomingBikeSchema = {
 };
 
 var app = express();
+app.use(requestIDParser);
 app.use(morgan("dev"));
 app.use(bodyParser.json());
+
+var requestIDHeaderName = 'x-contoso-request-id';
+var requestIDRegex = new RegExp(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+
+function requestIDParser(req, res, next) {
+    var reqID = req.header(requestIDHeaderName);
+    var test = false;
+    if (reqID) {
+        test = requestIDRegex.test(reqID);
+    }
+    if (!test && req.path != "/hello") {
+        res.status(400).send("Couldn't parse request id guid");
+        return;
+    }
+
+    console.log("RequestID start: " + reqID);
+    next();
+    console.log("RequestID done: " + reqID);
+}
 
 // api ------------------------------------------------------------
 
 // find bike ------------------------------------------------------------
 app.get('/api/availableBikes', function (req, res) {
+    var requestID = req.header(requestIDHeaderName);
     var query = { available: true };
     // Add user filter conditions
     for (var queryParam in req.query) {
@@ -82,7 +103,7 @@ app.get('/api/availableBikes', function (req, res) {
     var cursor = mongoDB.collection(mongoDBCollection).find(query).sort({ hourlyCost: 1 }).limit(10);
     cursor.toArray(function(err, data) {
         if (err) {
-            dbError(res, err);
+            dbError(res, err, requestID);
             return;
         }
 
@@ -97,6 +118,7 @@ app.get('/api/availableBikes', function (req, res) {
 
 // new bike ------------------------------------------------------------
 app.post('/api/bikes', function (req, res) {
+    var requestID = req.header(requestIDHeaderName);
     var validationErrors = validate(req.body, incomingBikeSchema);
     if (validationErrors) {
         res.status(400).send(validationErrors);
@@ -108,19 +130,20 @@ app.post('/api/bikes', function (req, res) {
 
     mongoDB.collection(mongoDBCollection).insertOne(newBike, function(err, result) {
         if (err) {
-            dbError(res, err);
+            dbError(res, err, requestID);
             return;
         }
         
         newBike.id = newBike._id;
         delete newBike._id;
-        console.log('inserted new bikeId: ' + newBike.id);
+        console.log(requestID + ' - inserted new bikeId: ' + newBike.id);
         res.send(newBike);
     });
 });
 
 // update bike ------------------------------------------------------------
 app.put('/api/bikes/:bikeId', function(req, res) {
+    var requestID = req.header(requestIDHeaderName);
     var validationErrors = validate(req.body, incomingBikeSchema);
     if (validationErrors) {
         res.status(400).send(validationErrors);
@@ -131,7 +154,7 @@ app.put('/api/bikes/:bikeId', function(req, res) {
 
     mongoDB.collection(mongoDBCollection).updateOne({ _id: new ObjectId(req.params.bikeId) }, { $set: updatedBike }, function(err, result) {
         if (err) {
-            dbError(res, err);
+            dbError(res, err, requestID);
             return;
         }
         if (!result) {
@@ -144,7 +167,7 @@ app.put('/api/bikes/:bikeId', function(req, res) {
         }
         if (result.matchedCount !== 1 && result.modifiedCount !== 1) {
             var msg = 'Unexpected number of bikes modified! Matched: "' + result.matchedCount + '" Modified: "' + result.modifiedCount + '"';
-            console.log(msg);
+            console.log(requestID + " - " + msg);
             res.status(500).send(msg);
             return;
         }
@@ -155,6 +178,7 @@ app.put('/api/bikes/:bikeId', function(req, res) {
 
 // get bike ------------------------------------------------------------
 app.get('/api/bikes/:bikeId', function(req, res) {
+    var requestID = req.header(requestIDHeaderName);
     if (!req.params.bikeId) {
         res.status(400).send('Must specify bikeId');
         return;
@@ -162,7 +186,7 @@ app.get('/api/bikes/:bikeId', function(req, res) {
 
     mongoDB.collection(mongoDBCollection).findOne({ _id: new ObjectId(req.params.bikeId) }, function(err, result) {
         if (err) {
-            dbError(res, err);
+            dbError(res, err, requestID);
             return;
         }
         if (!result) {
@@ -180,6 +204,7 @@ app.get('/api/bikes/:bikeId', function(req, res) {
 
 // delete bike ------------------------------------------------------------
 app.delete('/api/bikes/:bikeId', function(req, res) {
+    var requestID = req.header(requestIDHeaderName);
     if (!req.params.bikeId) {
         res.status(400).send('Must specify bikeId');
         return;
@@ -187,7 +212,7 @@ app.delete('/api/bikes/:bikeId', function(req, res) {
     
     mongoDB.collection(mongoDBCollection).deleteOne({ _id: new ObjectId(req.params.bikeId) }, function(err, result) {
         if (err) {
-            dbError(res, err);
+            dbError(res, err, requestID);
             return;
         }
         if (result.deletedCount === 0) {
@@ -196,7 +221,7 @@ app.delete('/api/bikes/:bikeId', function(req, res) {
         }
         if (result.deletedCount !== 1) {
             var msg = 'Unexpected number of bikes deleted! Deleted: "' + result.deletedCount + '"';
-            console.log(msg);
+            console.log(requestID + " - " + msg);
             res.status(500).send(msg);
             return;
         }
@@ -207,35 +232,37 @@ app.delete('/api/bikes/:bikeId', function(req, res) {
 
 // reserve bike ------------------------------------------------------------
 app.patch('/api/bikes/:bikeId/reserve', function(req, res) {
+    var requestID = req.header(requestIDHeaderName);
     if (!req.params.bikeId) {
         res.status(400).send('Must specify bikeId');
         return;
     }
 
-    processReservation(res, req.params.bikeId, false);
+    processReservation(res, req.params.bikeId, false, requestID);
 });
 
 // clear bike ------------------------------------------------------------
 app.patch('/api/bikes/:bikeId/clear', function(req, res) {
+    var requestID = req.header(requestIDHeaderName);
     if (!req.params.bikeId) {
         res.status(400).send('Must specify bikeId');
         return;
     }
 
-    processReservation(res, req.params.bikeId, true);
+    processReservation(res, req.params.bikeId, true, requestID);
 });
 
-function processReservation(res, bikeId, changeTo) {
+function processReservation(res, bikeId, changeTo, requestID) {
     mongoDB.collection(mongoDBCollection).updateOne({ _id: new ObjectId(bikeId), available: !changeTo }, { $set: { available: changeTo } }, function(err, result) {
         if (err) {
-            dbError(res, err);
+            dbError(res, err, requestID);
             return;
         }
         if (result.matchedCount === 0) {
             // Figure out if bike does not exist or if it was invalid reservation request
             mongoDB.collection(mongoDBCollection).findOne({ _id: new ObjectId(bikeId) }, function(err, result) {
                 if (err) {
-                    dbError(res, err);
+                    dbError(res, err, requestID);
                     return;
                 }
 
@@ -252,7 +279,7 @@ function processReservation(res, bikeId, changeTo) {
         }
         if (result.matchedCount !== 1 && result.modifiedCount !== 1) {
             var msg = 'Unexpected number of bikes changed availability! Matched: "' + result.matchedCount + '" Modified: "' + result.modifiedCount + '"';
-            console.log(msg);
+            console.log(requestID + " - " + msg);
             res.status(500).send(msg);
             return;
         }
@@ -265,13 +292,13 @@ function bikeDoesNotExist(res, bikeId) {
     res.status(404).send('BikeId "' + bikeId + '" does not exist!');
 }
 
-function dbError(res, err) {
-    console.log(err);
+function dbError(res, err, requestID) {
+    console.log(requestID + " - " + err);
     res.status(500).send(err);
 }
 
 app.get('/hello', function(req, res) {
-    res.send('hello!');
+    res.send('hello!\n');
 });
 
 // start server ------------------------------------------------------------
