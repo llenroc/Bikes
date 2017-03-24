@@ -116,6 +116,25 @@ app.get('/api/availableBikes', function (req, res) {
     });
 });
 
+app.get('/api/allbikes', function(req, res) {
+    var requestID = req.header(requestIDHeaderName);
+
+    var cursor = mongoDB.collection(mongoDBCollection).find({}).sort({ hourlyCost: 1 }).limit(10);
+    cursor.toArray(function(err, data) {
+        if (err) {
+            dbError(res, err, requestID);
+            return;
+        }
+
+        data.forEach(function(bike) {
+            bike.id = bike._id;
+            delete bike._id;
+        });
+
+        res.send(data);
+    });
+});
+
 // new bike ------------------------------------------------------------
 app.post('/api/bikes', function (req, res) {
     var requestID = req.header(requestIDHeaderName);
