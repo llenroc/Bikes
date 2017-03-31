@@ -100,7 +100,7 @@ app.get('/api/availableBikes', function (req, res) {
         }
     }
 
-    var cursor = mongoDB.collection(mongoDBCollection).find(query).sort({ hourlyCost: 1 }).limit(10);
+    var cursor = mongoDB.collection(mongoDBCollection).find(query).sort({ hourlyCost: 1 }).limit(30);
     cursor.toArray(function(err, data) {
         if (err) {
             dbError(res, err, requestID);
@@ -119,7 +119,7 @@ app.get('/api/availableBikes', function (req, res) {
 app.get('/api/allbikes', function(req, res) {
     var requestID = req.header(requestIDHeaderName);
 
-    var cursor = mongoDB.collection(mongoDBCollection).find({}).sort({ hourlyCost: 1 }).limit(10);
+    var cursor = mongoDB.collection(mongoDBCollection).find({}).sort({ hourlyCost: 1 });
     cursor.toArray(function(err, data) {
         if (err) {
             dbError(res, err, requestID);
