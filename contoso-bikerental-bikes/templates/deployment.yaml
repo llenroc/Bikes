@@ -32,13 +32,15 @@ spec:
             path: /hello
             port: 80
           initialDelaySeconds: 6
-          periodSeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 6
         readinessProbe:
           httpGet:
             path: /hello
             port: 80
           initialDelaySeconds: 6
-          periodSeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 6
         resources:
           limits:
             cpu: 100m
