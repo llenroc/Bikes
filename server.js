@@ -168,6 +168,11 @@ app.put('/api/bikes/:bikeId', function(req, res) {
         res.status(400).send(validationErrors);
         return;
     }
+    if (!ObjectId.isValid(req.params.bikeId))
+    {
+        res.status(400).send(req.params.bikeId + ' is not a valid bikeId!');
+        return;
+    }
 
     var updatedBike = req.body;
 
@@ -202,6 +207,11 @@ app.get('/api/bikes/:bikeId', function(req, res) {
         res.status(400).send('Must specify bikeId');
         return;
     }
+    if (!ObjectId.isValid(req.params.bikeId))
+    {
+        res.status(400).send(req.params.bikeId + ' is not a valid bikeId!');
+        return;
+    }
 
     mongoDB.collection(mongoDBCollection).findOne({ _id: new ObjectId(req.params.bikeId) }, function(err, result) {
         if (err) {
@@ -226,6 +236,11 @@ app.delete('/api/bikes/:bikeId', function(req, res) {
     var requestID = req.header(requestIDHeaderName);
     if (!req.params.bikeId) {
         res.status(400).send('Must specify bikeId');
+        return;
+    }
+    if (!ObjectId.isValid(req.params.bikeId))
+    {
+        res.status(400).send(req.params.bikeId + ' is not a valid bikeId!');
         return;
     }
     
@@ -272,6 +287,12 @@ app.patch('/api/bikes/:bikeId/clear', function(req, res) {
 });
 
 function processReservation(res, bikeId, changeTo, requestID) {
+    if (!ObjectId.isValid(bikeId))
+    {
+        res.status(400).send(bikeId + ' is not a valid bikeId!');
+        return;
+    }
+
     mongoDB.collection(mongoDBCollection).updateOne({ _id: new ObjectId(bikeId), available: !changeTo }, { $set: { available: changeTo } }, function(err, result) {
         if (err) {
             dbError(res, err, requestID);
